@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Pay Integration</title>
+
+    <!-- Include the HTML5 QR code scanner library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script async src="https://pay.google.com/gp/p/js/pay.js" onload="onGooglePayLoaded()"></script>
+</head>
+<body>
+    <h1>Scan QR Code to Pay</h1>
+    <div id="reader" style="width:300px; height:300px;"></div>
+    <div id="google-pay-button-container"></div>
+    <button id="payButton" style="display:none;">Pay with Google Pay</button>
+    <!-- Include your custom JavaScript file -->
+    <script src="{% static 'js/js/scan_and_pay.js' %}"></script>
+
+    <script>
+        let paymentDataRequest;
+
+        function onGooglePayLoaded() {
+            const paymentsClient = new google.payments.api.PaymentsClient({ environment: 'TEST' });
+
+            paymentDataRequest = {
+                apiVersion: 2,
+                apiVersionMinor: 0,
+                allowedPaymentMethods: [{
+                    type: 'CARD',
+                    parameters: {
+                        allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+                        allowedNetworks: ['AMEX', 'DISCOVER', 'MASTERCARD', 'VISA']
+                    },
+                    tokenizationSpecification: {
+                        type: 'PAYMENT_GATEWAY',
+                        parameters: {
+                            'gateway': 'example',
+                            'gatewayMerchantId': 'exampleGatewayMerchantId'
+                        }
+                    }
+                }],
+                merchantInfo: {
+                    merchantId: 'J3mpPUm1pvrnUI',
+                    merchantName: 'MiniPay'
+                },
+                transactionInfo: {
+                    totalPriceStatus: 'FINAL',
+                    totalPriceLabel: 'Total',
+                    totalPrice: '12.34',
+                    currencyCode: 'USD',
+                    countryCode: 'US'
+                },
+                shippingAddressRequired: true,
+                callbackIntents: ['PAYMENT_AUTHORIZATION']
+            };
+
+            const button = paymentsClient.createButton({ onClick: onGooglePayButtonClicked });
+            document.getElementById('google-pay-button-container').appendChild(button);
+        }
+
+        function onGooglePayButtonClicked() {
+            const paymentsClient = new google.payments.api.PaymentsClient({ environment: 'TEST' });
+            
+            paymentsClient.loadPaymentData(paymentDataRequest)
+                .then(function(paymentData) {
+                    // Handle the response
+                    processPayment(paymentData);
+                })
+                .catch(function(err) {
+                    // Handle errors
+                    console.error('Error: ', err);
+                });
+        }
+
+        function processPayment(paymentData) {
+            fetch('/payment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ paymentData: paymentData })
+            }).then(response => response.json())
+              .then(data => {
+                  console.log('Payment processing result: ', data);
+              });
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Handle the decoded text (payment URL or information)
+            console.log(`Code matched = ${decodedText}`);
+            // Redirect to payment URL or show the Google Pay button
+            document.getElementById('payButton').style.display = 'block';
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            onScanSuccess
+        ).catch(err => {
+            console.error('Error starting QR code scan: ', err);
+        });
+    </script>
+</body>
+</html> 
+
+
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Pay Integration</title>
+    <!-- Load static files -->
+    {% load static %}
+    <!-- Include the HTML5 QR code scanner library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+    <h1>Scan QR Code to Pay</h1>
+    <div id="reader" style="width:300px; height:300px;"></div>
+    <button id="payButton" style="display:none; margin-left:300px;">Pay with Google Pay</button>
+    <!-- Include your custom JavaScript file -->
+    <script src="{% static 'js/js/scan_and_pay.js' %}"></script>
+</body>
+</html>  {% endcomment %}
+
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Pay Integration</title>
+    <!-- Load static files -->
+    {% load static %}
+    <!-- Include the HTML5 QR code scanner library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Google Pay API -->
+    <script async src="https://pay.google.com/gp/p/js/pay.js"></script>
+</head>
+<body>
+    <h1>Scan QR Code to Pay</h1>
+    <div id="reader" style="width:300px; height:300px;"></div>
+    <div id="container"></div>
+    <button id="payButton" style="display:none; margin-left:300px;">Pay with Google Pay</button>
+    <!-- Include your custom JavaScript file -->
+    <script src="{% static 'js/js/scan_and_pay.js' %}"></script>
+</body>
+</html> {% endcomment %}
+
